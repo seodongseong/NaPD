@@ -1,0 +1,15 @@
+version: '3.8'
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: napd-mysql
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: 1234
+      MYSQL_DATABASE: napd_db
+      TZ: Asia/Seoul
+    ports:
+      - "3306:3306"
+    volumes:
+      - ./dbdata:/var/lib/mysql
