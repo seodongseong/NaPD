@@ -13,6 +13,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
+
 @Service
 @RequiredArgsConstructor
 public class ContentsService {
@@ -57,7 +59,7 @@ public class ContentsService {
     public Contents updateContents(Long userId, Long contentsId, ContentsUpdateRequestDto requestDto) {
 
         // 1. 게시물 조회
-        Contents contents = contentsRepository.findById(contentsId)
+        Contents contents = contentsRepository.findByIdWithUser(contentsId)
                 .orElseThrow(()-> new IllegalArgumentException("존재하지 않는 게시물입니다."));
 
         // 2. 인가 확인 (Authorization)
@@ -90,5 +92,18 @@ public class ContentsService {
 
         // 3. 삭제 실행
         contentsRepository.delete(contents);
+    }
+
+    // 단건 조회
+    @Transactional(readOnly = true)
+    public Contents getContents(Long contentsId){
+        return contentsRepository.findByIdWithUser(contentsId)
+                .orElseThrow(()->new IllegalArgumentException("존재하지 않는 게시물입니다."));
+    }
+
+    // 전체 조회
+    @Transactional(readOnly = true)
+    public List<Contents> getAllContents() {
+        return contentsRepository.findAllWithUser();
     }
 }

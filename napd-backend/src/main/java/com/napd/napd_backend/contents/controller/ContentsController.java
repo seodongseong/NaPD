@@ -2,6 +2,7 @@ package com.napd.napd_backend.contents.controller;
 
 import com.napd.napd_backend.contents.dto.ContentsCreateRequestDto;
 import com.napd.napd_backend.contents.dto.ContentsListResponseDto;
+import com.napd.napd_backend.contents.dto.ContentsResponseDto;
 import com.napd.napd_backend.contents.dto.ContentsUpdateRequestDto;
 import com.napd.napd_backend.contents.entity.Contents;
 import com.napd.napd_backend.contents.service.ContentsService;
@@ -16,6 +17,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/contents")
@@ -57,14 +61,30 @@ public class ContentsController {
     * GET /api/contents
     * - 인증 불필요 (누구나 조회 가능)
     */
+    // 2. 전체 목록 조회 (GET /api/contents)
+    // ⭐ 중복되었던 페이지네이션 메서드는 삭제하거나 주석처리하고 이것만 남깁니다.
     @GetMapping
-    public ResponseEntity<Page<ContentsListResponseDto>> getAllContents(
-            // URL 쿼리 파라미터가 없으면 기본값 설정 (createdAt 기준 내림차순)
-            @PageableDefault(size = 20, sort = "createAt", direction = Sort.Direction.DESC)
-            Pageable pageable){
-        Page<ContentsListResponseDto> contentsList = contentsService.getAllContents(pageable);
-        return ResponseEntity.ok(contentsList);
+    public ResponseEntity<?> getAllContents() {
+        try {
+            List<Contents> contentsList = contentsService.getAllContents();
+            List<ContentsResponseDto> responseDtos = contentsList.stream()
+                    .map(ContentsResponseDto::new)
+                    .collect(Collectors.toList());
+            return ResponseEntity.ok(responseDtos);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("목록 조회 오류");
+        }
+    }
 
+    // 3. 단건 조회 (GET /api/contents/{contentsId})
+    @GetMapping("/{contentsId}")
+    public ResponseEntity<?> getContents(@PathVariable Long contentsId) {
+        try {
+            Contents contents = contentsService.getContents(contentsId);
+            return ResponseEntity.ok(new ContentsResponseDto(contents));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+        }
     }
 
     /*
@@ -74,13 +94,13 @@ public class ContentsController {
     */
     @PutMapping("/{contentsId}")
     public ResponseEntity<?> updateContents(@PathVariable Long contentsId,
-                                            @Valid @RequestBody ContentsUpdateRequestDto requestDto){
+                                                              @Valid @RequestBody ContentsUpdateRequestDto requestDto){
         try{
             Long userId = Long.valueOf((String) SecurityContextHolder.getContext().getAuthentication().getPrincipal());
 
             Contents updatedContents = contentsService.updateContents(userId, contentsId, requestDto);
 
-            return ResponseEntity.ok(updatedContents);
+            return ResponseEntity.ok(new ContentsResponseDto(updatedContents));
 
         } catch (IllegalArgumentException e) {
             // 인가 실패 또는 게시물 없음
@@ -110,7 +130,6 @@ public class ContentsController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("게시물 삭제 중 서버 오류가 발생했습니다.");
         }
     }
-
 
 
 
