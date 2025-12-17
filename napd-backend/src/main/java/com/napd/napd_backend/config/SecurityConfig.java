@@ -35,6 +35,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         // 회원가입 경로는 인증 없이 접근을 허용(permitAll)합니다.
                         .requestMatchers("/api/auth/signup","/api/auth/login","/api/contents").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/contents", "/api/contents/**").permitAll() // GET 요청만 모두 허용
                         // POST, PUT, DELETE 요청은 인증 필요
                         .requestMatchers(HttpMethod.POST, "/api/contents").authenticated()
                         .requestMatchers(HttpMethod.PUT, "/api/contents/**").authenticated()

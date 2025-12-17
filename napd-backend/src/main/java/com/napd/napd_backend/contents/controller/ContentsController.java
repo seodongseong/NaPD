@@ -34,26 +34,14 @@ public class ContentsController {
     */
     @PostMapping
     public ResponseEntity<?> createContents(@Valid @RequestBody ContentsCreateRequestDto requestDto) {
-        try{
-            // 1. SecurityContext에서 현재 로그인한 사용자의 ID(Principal)를 가져옵니다.
-            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-
-            // principal은 String 타입의 User ID입니다.
-            Long userId = Long.valueOf((String) authentication.getPrincipal());
-
-            // 2. Service 로직 실행
-            Contents createdContents = contentsService.createContents(userId, requestDto);
-
-            // 3. 성공 응답 (201 Created)
-            return ResponseEntity.status(HttpStatus.CREATED).body(createdContents);
-
-        } catch (IllegalArgumentException e){
-            // 사용자 ID가 유효하지 않을 경우 (발생 가능성은 낮음)
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
-        } catch (Exception e) {
-            // 기타 서버 오류
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("게시물 생성 중 서버 오류가 발생했습니다.");
-        }
+        // 1. SecurityContext에서 현재 로그인한 사용자의 ID(Principal)를 가져옵니다.
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        // principal은 String 타입의 User ID입니다.
+        Long userId = Long.valueOf((String) authentication.getPrincipal());
+        // 2. Service 로직 실행
+        Contents createdContents = contentsService.createContents(userId, requestDto);
+        // 3. 성공 응답 (201 Created)
+        return ResponseEntity.status(HttpStatus.CREATED).body(new ContentsResponseDto(createdContents));
     }
 
     /*
@@ -61,31 +49,25 @@ public class ContentsController {
     * GET /api/contents
     * - 인증 불필요 (누구나 조회 가능)
     */
-    // 2. 전체 목록 조회 (GET /api/contents)
-    // ⭐ 중복되었던 페이지네이션 메서드는 삭제하거나 주석처리하고 이것만 남깁니다.
-    @GetMapping
-    public ResponseEntity<?> getAllContents() {
-        try {
-            List<Contents> contentsList = contentsService.getAllContents();
-            List<ContentsResponseDto> responseDtos = contentsList.stream()
-                    .map(ContentsResponseDto::new)
-                    .collect(Collectors.toList());
-            return ResponseEntity.ok(responseDtos);
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("목록 조회 오류");
-        }
-    }
 
-    // 3. 단건 조회 (GET /api/contents/{contentsId})
+    // 단건 조회 (GET /api/contents/{contentsId})
     @GetMapping("/{contentsId}")
     public ResponseEntity<?> getContents(@PathVariable Long contentsId) {
-        try {
-            Contents contents = contentsService.getContents(contentsId);
-            return ResponseEntity.ok(new ContentsResponseDto(contents));
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
-        }
+        Contents contents = contentsService.getContents(contentsId);
+        return ResponseEntity.ok(new ContentsResponseDto(contents));
     }
+
+    // 전체 목록 조회 (GET /api/contents)
+    @GetMapping
+    public ResponseEntity<?> getAllContents() {
+        List<Contents> contentsList = contentsService.getAllContents();
+        List<ContentsResponseDto> responseDtos = contentsList.stream()
+                .map(ContentsResponseDto::new)
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(responseDtos);
+    }
+
+
 
     /*
     * 게시물 수정 API
@@ -94,20 +76,10 @@ public class ContentsController {
     */
     @PutMapping("/{contentsId}")
     public ResponseEntity<?> updateContents(@PathVariable Long contentsId,
-                                                              @Valid @RequestBody ContentsUpdateRequestDto requestDto){
-        try{
-            Long userId = Long.valueOf((String) SecurityContextHolder.getContext().getAuthentication().getPrincipal());
-
-            Contents updatedContents = contentsService.updateContents(userId, contentsId, requestDto);
-
-            return ResponseEntity.ok(new ContentsResponseDto(updatedContents));
-
-        } catch (IllegalArgumentException e) {
-            // 인가 실패 또는 게시물 없음
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(e.getMessage()); // 403 Forbidden
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("게시물 수정 중 서버 오류가 발생했습니다.");
-        }
+                                            @Valid @RequestBody ContentsUpdateRequestDto requestDto){
+        Long userId = Long.valueOf((String) SecurityContextHolder.getContext().getAuthentication().getPrincipal());
+        Contents updatedContents = contentsService.updateContents(userId, contentsId, requestDto);
+        return ResponseEntity.ok(new ContentsResponseDto(updatedContents));
     }
 
     /*
@@ -117,18 +89,10 @@ public class ContentsController {
     * */
     @DeleteMapping("/{contentsId}")
     public ResponseEntity<?> deleteContents(@PathVariable Long contentsId){
-        try{
-            Long userId = Long.valueOf((String) SecurityContextHolder.getContext().getAuthentication().getPrincipal());
-
-            contentsService.deleteContents(userId, contentsId);
-
-            // 성공 시 204 No contents 반환
-            return ResponseEntity.noContent().build();
-        } catch (IllegalArgumentException e){
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(e.getMessage()); // 403 Forbidden
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("게시물 삭제 중 서버 오류가 발생했습니다.");
-        }
+        Long userId = Long.valueOf((String) SecurityContextHolder.getContext().getAuthentication().getPrincipal());
+        contentsService.deleteContents(userId, contentsId);
+        // 성공 시 204 No contents 반환
+        return ResponseEntity.noContent().build();
     }
 
 
